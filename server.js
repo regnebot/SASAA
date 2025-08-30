@@ -7,7 +7,7 @@ const fs = require('fs');
 require('dotenv').config();
 
 const app = express();
-const port = process.env.PORT || 8080;
+const PORT = process.env.PORT || 8080;
 
 // Configuración de la base de datos PostgreSQL
 const pool = new Pool({
@@ -616,7 +616,7 @@ process.on('SIGTERM', async () => {
 });
 
 // Iniciar servidor
-app.listen(port, '0.0.0.0', async () => {
+app.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en puerto ${port}`);
   console.log(`📱 Entorno: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔗 URL: http://localhost:${port}`);
