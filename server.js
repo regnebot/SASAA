@@ -38,8 +38,8 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Servir archivos estáticos
-app.use(express.static(path.join(__dirname, 'public')));
+// Servir archivos estáticos desde la raíz del proyecto
+app.use('/static', express.static(path.join(__dirname, 'public')));
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -339,32 +339,32 @@ app.get('/api/admin/responses', async (req, res) => {
   }
 });
 
-// Root route - provide a fallback response if index.html doesn't exist
+// Root route - simple fallback that always works
 app.get('/', (req, res) => {
+  // First try to serve the existing index.html
   const indexPath = path.join(__dirname, 'public', 'index.html');
   
-  // Check if index.html exists
-  if (fs.existsSync(indexPath)) {
-    res.sendFile(indexPath);
-  } else {
-    // Fallback response if index.html doesn't exist
-    res.status(200).send(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Ángeles Sin Alas - Plataforma de Encuestas</title>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      </head>
-      <body>
-        <h1>Ángeles Sin Alas - Plataforma de Encuestas</h1>
-        <p>La aplicación está funcionando correctamente.</p>
-        <p>API Health Check: <a href="/api/health">/api/health</a></p>
-        <p>Encuestas disponibles: <a href="/api/surveys">/api/surveys</a></p>
-      </body>
-      </html>
-    `);
-  }
+  res.sendFile(indexPath, (err) => {
+    if (err) {
+      console.error('Error serving index.html:', err);
+      // If there's an error serving the file, send a simple response
+      res.status(200).send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Ángeles Sin Alas - Sistema Activo</title>
+          <meta charset="UTF-8">
+        </head>
+        <body style="font-family: Arial, sans-serif; padding: 20px; text-align: center;">
+          <h1>Ángeles Sin Alas - Plataforma de Encuestas</h1>
+          <p>El sistema está funcionando correctamente.</p>
+          <p><a href="/api/health">Verificar estado del sistema</a></p>
+          <p><a href="/api/surveys">Ver encuestas disponibles</a></p>
+        </body>
+        </html>
+      `);
+    }
+  });
 });
 
 // Catch-all route for SPA (if needed)
