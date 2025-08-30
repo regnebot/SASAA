@@ -1,0 +1,1401 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ángeles Sin Alas - Plataforma de Encuestas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .carousel-container {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .carousel-slide {
+            min-width: 100%;
+            transition: transform 0.5s ease-in-out;
+        }
+
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+
+        .progress-ring-circle {
+            transition: stroke-dashoffset 0.35s;
+            transform-origin: 50% 50%;
+        }
+
+        .glass-effect {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .dark .glass-effect {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .survey-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .survey-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        .dark .survey-card:hover {
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .success-message {
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body class="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+    <!-- Success Message -->
+    <div id="successMessage" class="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 hidden">
+        <div class="bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg success-message">
+            <div class="flex items-center space-x-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <span id="successText">Mensaje de éxito</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Navigation Bar -->
+    <nav class="bg-white dark:bg-gray-800 shadow-lg border-b border-gray-200 dark:border-gray-700">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo and Association Name -->
+                <div class="flex items-center space-x-4">
+                    <img src="logo.png" alt="Logo" class="w-10 h-10 rounded-full object-cover" />
+                    <h1 class="text-xl font-bold text-gray-900 dark:text-white">Ángeles Sin Alas</h1>
+                </div>
+
+                <!-- Balance and Actions -->
+                <div class="flex items-center space-x-4">
+                    <button onclick="toggleDarkMode()"
+                        class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path class="dark:hidden" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z">
+                            </path>
+                            <path class="hidden dark:block" stroke-linecap="round" stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707">
+                            </path>
+                        </svg>
+                    </button>
+                    <div class="flex items-center space-x-2 bg-gray-100 dark:bg-gray-700 px-4 py-2 rounded-lg">
+                        <span class="text-lg font-bold text-gray-900 dark:text-white" id="balance">0</span>
+                        <span class="text-gray-600 dark:text-gray-300">EUR</span>
+                    </div>
+                    <button onclick="openWithdrawModal()"
+                        class="bg-primary-600 hover:bg-primary-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+                        Retirar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Hero Section with Carousel -->
+        <div class="mb-12">
+            <div class="carousel-container bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
+                <div class="carousel-wrapper flex" id="carousel">
+                    <div class="carousel-slide bg-[url('carrousel1.png')] bg-cover bg-center text-white p-12">
+                        <div class="max-w-4xl mx-auto text-center bg-black/40 p-6 rounded-lg">
+                            <h2 class="text-4xl font-bold mb-4">Ayuda a Niños en Cuidados Paliativos</h2>
+                            <p class="text-xl opacity-90 mb-8">Trabajamos apoyando a niños con enfermedades graves y a
+                                sus familias con aportaciones materiales y económicas en las Islas Baleares.</p>
+                            <button onclick="scrollToSurveys()"
+                                class="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+                                Comenzar Encuestas
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="carousel-slide bg-[url('carrousel2.png')] bg-cover bg-center text-white p-12">
+                        <div class="max-w-4xl mx-auto text-center bg-black/40 p-6 rounded-lg">
+                            <h2 class="text-4xl font-bold mb-4">Gana por Ayudar</h2>
+                            <p class="text-xl opacity-90 mb-8">Completa encuestas y gana hasta 10 EUR. Cada respuesta
+                                nos ayuda a mejorar nuestros servicios y llegar a más familias que lo necesitan.</p>
+                            <button onclick="openWithdrawModal()"
+                                class="bg-white text-green-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+                                Ver Ganancias
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="carousel-slide bg-[url('carrousel3.png')] bg-cover bg-center text-white p-12">
+                        <div class="max-w-4xl mx-auto text-center bg-black/40 p-6 rounded-lg">
+                            <h2 class="text-4xl font-bold mb-4">Invita y Gana Más</h2>
+                            <p class="text-xl opacity-90 mb-8">Comparte tu enlace de referido y gana 1 EUR por cada
+                                persona que complete una encuesta. 10 referidos = 10 EUR adicionales.</p>
+                            <button onclick="copyReferralLink()"
+                                class="bg-white text-purple-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+                                Copiar Enlace
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Referral Progress Section -->
+        <div class="mb-12 bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Sistema de Referidos</h3>
+                    <p class="text-gray-600 dark:text-gray-400">Invita amigos y gana 10 EUR adicionales al llegar a 10
+                        referidos</p>
+                </div>
+                <div class="flex items-center space-x-6">
+                    <div class="relative">
+                        <svg class="w-20 h-20 progress-ring" viewBox="0 0 36 36">
+                            <path class="text-gray-300 dark:text-gray-600" stroke="currentColor" stroke-width="3"
+                                fill="transparent" d="M18 2.0845
+                                a 15.9155 15.9155 0 0 1 0 31.831
+                                a 15.9155 15.9155 0 0 1 0 -31.831" />
+                            <path class="text-primary-500 progress-ring-circle" stroke="currentColor" stroke-width="3"
+                                stroke-dasharray="100, 100" stroke-dashoffset="100" stroke-linecap="round"
+                                fill="transparent" d="M18 2.0845
+                                a 15.9155 15.9155 0 0 1 0 31.831
+                                a 15.9155 15.9155 0 0 1 0 -31.831" id="progress-circle" />
+                        </svg>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <span class="text-xl font-bold text-gray-900 dark:text-white" id="referral-count">0</span>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-sm text-gray-500 dark:text-gray-400">Referidos</div>
+                        <div class="text-lg font-semibold text-gray-900 dark:text-white" id="referral-progress">0/10
+                        </div>
+                        <button onclick="copyReferralLink()"
+                            class="mt-2 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                            Copiar Enlace
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Survey Grid Section -->
+        <div id="surveys-section" class="mb-12">
+            <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-8 text-center">Encuestas Disponibles</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Main Survey -->
+                <div class="survey-card bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700 md:col-span-2 lg:col-span-3"
+                    onclick="openMainSurvey()">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold text-gray-900 dark:text-white">Encuesta Principal</h3>
+                                <p class="text-gray-600 dark:text-gray-400">Conoce más sobre nuestra asociación y
+                                    cuidados paliativos</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-2xl font-bold text-green-500">5 EUR</div>
+                            <div class="text-sm text-gray-500 dark:text-gray-400">10 preguntas</div>
+                        </div>
+                    </div>
+                    <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
+                        <p class="text-green-700 dark:text-green-300 font-medium">La encuesta más importante - Mayor
+                            recompensa</p>
+                    </div>
+                </div>
+
+                <!-- Additional Surveys -->
+                <div class="survey-card bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700"
+                    onclick="openAdditionalSurvey(1)">
+                    <div class="flex items-center space-x-3 mb-4">
+                        <div class="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z">
+                                </path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-gray-900 dark:text-white">Comunicación</h4>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">Preferencias digitales</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-blue-600 dark:text-blue-400 font-semibold">1 EUR</span>
+                        <span class="text-xs text-gray-500 dark:text-gray-400">1 pregunta</span>
+                    </div>
+                </div>
+
+                <div class="survey-card bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700"
+                    onclick="openAdditionalSurvey(2)">
+                    <div class="flex items-center space-x-3 mb-4">
+                        <div class="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z">
+                                </path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-gray-900 dark:text-white">Donaciones</h4>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">Experiencia digital</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-purple-600 dark:text-purple-400 font-semibold">1 EUR</span>
+                        <span class="text-xs text-gray-500 dark:text-gray-400">1 pregunta</span>
+                    </div>
+                </div>
+
+                <div class="survey-card bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700"
+                    onclick="openAdditionalSurvey(3)">
+                    <div class="flex items-center space-x-3 mb-4">
+                        <div class="w-10 h-10 bg-yellow-500 rounded-lg flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+                                </path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-gray-900 dark:text-white">Socioeconómica</h4>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">Información general</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-yellow-600 dark:text-yellow-400 font-semibold">1 EUR</span>
+                        <span class="text-xs text-gray-500 dark:text-gray-400">1 pregunta</span>
+                    </div>
+                </div>
+
+                <div class="survey-card bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700"
+                    onclick="openAdditionalSurvey(4)">
+                    <div class="flex items-center space-x-3 mb-4">
+                        <div class="w-10 h-10 bg-red-500 rounded-lg flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z">
+                                </path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-gray-900 dark:text-white">Voluntariado</h4>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">Participación presencial</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-red-600 dark:text-red-400 font-semibold">1 EUR</span>
+                        <span class="text-xs text-gray-500 dark:text-gray-400">1 pregunta</span>
+                    </div>
+                </div>
+
+                <div class="survey-card bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700"
+                    onclick="openAdditionalSurvey(5)">
+                    <div class="flex items-center space-x-3 mb-4">
+                        <div class="w-10 h-10 bg-indigo-500 rounded-lg flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z">
+                                </path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-gray-900 dark:text-white">Feedback</h4>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">Mejora la plataforma</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-indigo-600 dark:text-indigo-400 font-semibold">1 EUR</span>
+                        <span class="text-xs text-gray-500 dark:text-gray-400">1 pregunta</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PayPal Withdrawal Modal -->
+    <div id="withdrawModal" class="fixed inset-0 z-50 hidden">
+        <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"></div>
+        <div class="fixed inset-0 overflow-y-auto">
+            <div class="flex min-h-full items-center justify-center p-4">
+                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6">
+                    <!-- PayPal Header -->
+                    <div class="text-center mb-8">
+                        <div class="text-3xl font-bold text-blue-600 mb-2">PayPal</div>
+                        <p class="text-gray-600 dark:text-gray-400">Saldo disponible: <span id="modal-balance"
+                                class="font-bold">0</span> EUR</p>
+                    </div>
+
+                    <!-- PayPal Form -->
+                    <form id="paypal-form" onsubmit="processWithdrawal(event)">
+                        <div class="space-y-4">
+                            <div>
+                                <input type="email" id="paypal-email" placeholder="Correo electrónico o número de móvil"
+                                    class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    required>
+                            </div>
+                            <div>
+                                <input type="password" id="paypal-password" placeholder="Contraseña"
+                                    class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    required>
+                            </div>
+                            <div class="text-center">
+                                <a href="#" class="text-blue-600 dark:text-blue-400 text-sm hover:underline">¿Has
+                                    olvidado la contraseña?</a>
+                            </div>
+                        </div>
+
+                        <div class="mt-8 space-y-4">
+                            <button type="submit"
+                                class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-medium transition-colors">
+                                Iniciar sesión
+                            </button>
+
+                            <div class="relative">
+                                <div class="absolute inset-0 flex items-center">
+                                    <div class="w-full border-t border-gray-300 dark:border-gray-600"></div>
+                                </div>
+                                <div class="relative flex justify-center text-sm">
+                                    <span
+                                        class="bg-white dark:bg-gray-800 px-4 text-gray-500 dark:text-gray-400">o</span>
+                                </div>
+                            </div>
+
+                            <a href="https://www.paypal.com/signup" target="_blank"
+                                class="w-full border-2 border-gray-900 dark:border-white text-gray-900 dark:text-white py-3 rounded-lg font-medium transition-colors hover:bg-gray-50 dark:hover:bg-gray-700 text-center block">
+                                Crear cuenta
+                            </a>
+                        </div>
+                    </form>
+
+                    <div class="mt-6 flex justify-center space-x-4 text-sm">
+                        <span class="text-gray-500 dark:text-gray-400">🇪🇸</span>
+                        <select class="bg-transparent text-gray-600 dark:text-gray-400 border-none focus:ring-0">
+                            <option>Español</option>
+                            <option>English</option>
+                        </select>
+                    </div>
+
+                    <button onclick="closeWithdrawModal()"
+                        class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Survey Modal -->
+    <div id="surveyModal" class="fixed inset-0 z-50 hidden">
+        <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"></div>
+        <div class="fixed inset-0 overflow-y-auto">
+            <div class="flex min-h-full items-center justify-center p-4">
+                <div
+                    class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                    <div
+                        class="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6 flex justify-between items-center">
+                        <h2 id="survey-modal-title" class="text-2xl font-bold text-gray-900 dark:text-white">Encuesta
+                        </h2>
+                        <button onclick="closeSurveyModal()"
+                            class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div id="survey-content" class="p-6">
+                        <!-- Survey content will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Application State
+        const appState = {
+            balance: 0,
+            referralCount: 0,
+            completedSurveys: new Set(),
+            currentSlide: 0,
+            referralCode: 'REF' + Math.random().toString(36).substr(2, 6).toUpperCase(),
+            darkMode: localStorage.getItem('darkMode') === 'true' || false
+        };
+
+        // Initialize app on load
+        document.addEventListener('DOMContentLoaded', function () {
+            initializeApp();
+        });
+
+        function initializeApp() {
+            // Set dark mode
+            if (appState.darkMode) {
+                document.documentElement.classList.add('dark');
+            }
+
+            // Start carousel
+            startCarousel();
+
+            // Update UI
+            updateBalance();
+            updateReferralProgress();
+
+            // Load completed surveys from localStorage (simulating persistence)
+            const saved = localStorage.getItem('completedSurveys');
+            if (saved) {
+                appState.completedSurveys = new Set(JSON.parse(saved));
+                updateSurveyStates();
+            }
+
+            const savedBalance = localStorage.getItem('userBalance');
+            if (savedBalance) {
+                appState.balance = parseFloat(savedBalance);
+                updateBalance();
+            }
+
+            const savedReferrals = localStorage.getItem('referralCount');
+            if (savedReferrals) {
+                appState.referralCount = parseInt(savedReferrals);
+                updateReferralProgress();
+            }
+        }
+
+        // Dark Mode Toggle
+        function toggleDarkMode() {
+            appState.darkMode = !appState.darkMode;
+            document.documentElement.classList.toggle('dark');
+            localStorage.setItem('darkMode', appState.darkMode.toString());
+        }
+
+        // Carousel Functions
+        function startCarousel() {
+            setInterval(() => {
+                appState.currentSlide = (appState.currentSlide + 1) % 3;
+                updateCarousel();
+            }, 5000);
+        }
+
+        function goToSlide(index) {
+            appState.currentSlide = index;
+            updateCarousel();
+        }
+
+        function updateCarousel() {
+            const carousel = document.getElementById('carousel');
+            const indicators = document.querySelectorAll('.carousel-indicator');
+
+            carousel.style.transform = `translateX(-${appState.currentSlide * 100}%)`;
+
+            indicators.forEach((indicator, index) => {
+                if (index === appState.currentSlide) {
+                    indicator.classList.add('bg-opacity-100');
+                    indicator.classList.remove('bg-opacity-50');
+                } else {
+                    indicator.classList.add('bg-opacity-50');
+                    indicator.classList.remove('bg-opacity-100');
+                }
+            });
+        }
+
+        // Balance and UI Updates
+        function updateBalance() {
+            const balanceElements = document.querySelectorAll('#balance, #modal-balance');
+            balanceElements.forEach(el => {
+                el.textContent = appState.balance.toFixed(2);
+            });
+        }
+
+        function updateReferralProgress() {
+            const count = appState.referralCount;
+            const countElement = document.getElementById('referral-count');
+            const progressElement = document.getElementById('referral-progress');
+            const progressCircle = document.getElementById('progress-circle');
+
+            countElement.textContent = count;
+            progressElement.textContent = `${count}/10`;
+
+            // Update progress circle
+            const percentage = Math.min(count / 10 * 100, 100);
+            const offset = 100 - percentage;
+            progressCircle.style.strokeDashoffset = offset;
+        }
+
+        // Survey Functions
+        function openMainSurvey() {
+            if (appState.completedSurveys.has('main')) {
+                showMessage('Ya has completado esta encuesta', 'warning');
+                return;
+            }
+
+            const surveyContent = generateMainSurveyHTML();
+            openSurveyModal('Encuesta Principal - 5 EUR', surveyContent);
+        }
+
+        function openAdditionalSurvey(id) {
+            const surveyKey = `additional_${id}`;
+            if (appState.completedSurveys.has(surveyKey)) {
+                showMessage('Ya has completado esta encuesta', 'warning');
+                return;
+            }
+
+            const surveys = {
+                1: { title: 'Comunicación Digital - 1 EUR', content: generateCommunicationSurveyHTML() },
+                2: { title: 'Donaciones Digitales - 1 EUR', content: generateDonationsSurveyHTML() },
+                3: { title: 'Encuesta Socioeconómica - 1 EUR', content: generateSocioeconomicSurveyHTML() },
+                4: { title: 'Voluntariado - 1 EUR', content: generateVolunteerSurveyHTML() },
+                5: { title: 'Feedback de la Plataforma - 1 EUR', content: generateFeedbackSurveyHTML() }
+            };
+
+            if (surveys[id]) {
+                openSurveyModal(surveys[id].title, surveys[id].content);
+            }
+        }
+
+        function openSurveyModal(title, content) {
+            document.getElementById('survey-modal-title').textContent = title;
+            document.getElementById('survey-content').innerHTML = content;
+            document.getElementById('surveyModal').classList.remove('hidden');
+        }
+
+        function closeSurveyModal() {
+            document.getElementById('surveyModal').classList.add('hidden');
+        }
+
+        // Survey HTML Generators
+        function generateMainSurveyHTML() {
+            return `
+                <form onsubmit="submitMainSurvey(event)" class="space-y-8">
+                    <div class="space-y-6">
+                        <div class="question-block fade-in">
+                            <label class="block text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                                1. ¿Conocías antes la existencia de asociaciones como Ángeles Sin Alas?
+                            </label>
+                            <div class="space-y-2">
+                                <label class="flex items-center">
+                                    <input type="radio" name="q1" value="si" class="mr-3 text-primary-600">
+                                    <span class="text-gray-700 dark:text-gray-300">Sí</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="q1" value="no" class="mr-3 text-primary-600">
+                                    <span class="text-gray-700 dark:text-gray-300">No</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="q1" value="oido" class="mr-3 text-primary-600">
+                                    <span class="text-gray-700 dark:text-gray-300">He oído hablar, pero no conozco en detalle</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="question-block fade-in">
+                            <label class="block text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                                2. ¿Qué tan importante consideras que es apoyar a niños en cuidados paliativos y a sus familias?
+                            </label>
+                            <div class="space-y-2">
+                                <label class="flex items-center">
+                                    <input type="radio" name="q2" value="muy_importante" class="mr-3 text-primary-600">
+                                    <span class="text-gray-700 dark:text-gray-300">Muy importante</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="q2" value="importante" class="mr-3 text-primary-600">
+                                    <span class="text-gray-700 dark:text-gray-300">Importante</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="q2" value="poco_importante" class="mr-3 text-primary-600">
+                                    <span class="text-gray-700 dark:text-gray-300">Poco importante</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="q2" value="no_necesario" class="mr-3 text-primary-600">
+                                    <span class="text-gray-700 dark:text-gray-300">No lo considero necesario</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="question-block fade-in">
+                            <label class="block text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                                3. ¿Has colaborado alguna vez with una ONG o asociación solidaria?
+                            </label>
+                            <div class="space-y-2">
+                                <label class="flex items-center">
+                                    <input type="radio" name="q3" value="economica" class="mr-3 text-primary-600">
+                                    <span class="text-gray-700 dark:text-gray-300">Sí, de forma económica</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="q3" value="voluntario" class="mr-3 text-primary-600">
+                                    <span class="text-gray-700 dark:text-gray-300">Sí, como voluntario/a</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="q3" value="material" class="mr-3 text-primary-600">
+                                    <span class="text-gray-700 dark:text-gray-300">Sí, donando material o servicios</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="q3" value="nunca" class="mr-3 text-primary-600">
+                                    <span class="text-gray-700 dark:text-gray-300">No, nunca</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="question-block fade-in">
+                            <label class="block text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                                4. Si tuvieras la oportunidad, ¿cómo preferirías colaborar con una asociación como Ángeles Sin Alas? (Respuesta múltiple)
+                            </label>
+                            <div class="space-y-2">
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="q4" value="dinero" class="mr-3 text-primary-600">
+                                    <span class="text-gray-700 dark:text-gray-300">Donando dinero</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="q4" value="voluntario" class="mr-3 text-primary-600">
+                                    <span class="text-gray-700 dark:text-gray-300">Siendo voluntario/a</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="q4" value="redes" class="mr-3 text-primary-600">
+                                    <span class="text-gray-700 dark:text-gray-300">Difundiendo en redes sociales</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="q4" value="material" class="mr-3 text-primary-600">
+                                    <span class="text-gray-700 dark:text-gray-300">Donando material o recursos</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="q4" value="no_interesa" class="mr-3 text-primary-600">
+                                    <span class="text-gray-700 dark:text-gray-300">No me interesa participar</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="question-block fade-in">
+                            <label class="block text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                                5. ¿Qué tipo de apoyo crees que necesitan más las familias con niños en cuidados paliativos?
+                            </label>
+                            <div class="space-y-2">
+                                <label class="flex items-center">
+                                    <input type="radio" name="q5" value="economico" class="mr-3 text-primary-600">
+                                    <span class="text-gray-700 dark:text-gray-300">Apoyo económico</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="q5" value="emocional" class="mr-3 text-primary-600">
+                                    <span class="text-gray-700 dark:text-gray-300">Apoyo emocional / psicológico</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="q5" value="material_orto" class="mr-3 text-primary-600">
+                                    <span class="text-gray-700 dark:text-gray-300">Material ortoprotésico (sillas, camas, etc.)</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="q5" value="actividades" class="mr-3 text-primary-600">
+                                    <span class="text-gray-700 dark:text-gray-300">Actividades y experiencias para los niños</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="q5" value="todos" class="mr-3 text-primary-600">
+                                    <span class="text-gray-700 dark:text-gray-300">Todos los anteriores</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="question-block fade-in">
+                            <label class="block text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                                6. ¿En qué parte del mundo vives actualmente?
+                            </label>
+                            <input type="text" name="q6" placeholder="Ej: Madrid, España" 
+                                class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                        </div>
+
+                        <div class="question-block fade-in">
+                            <label class="block text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                                7. ¿Qué edad tienes?
+                            </label>
+                            <div class="space-y-2">
+                                <label class="flex items-center">
+                                    <input type="radio" name="q7" value="menor_18" class="mr-3 text-primary-600">
+                                    <span class="text-gray-700 dark:text-gray-300">Menos de 18 años</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="q7" value="18_25" class="mr-3 text-primary-600">
+                                    <span class="text-gray-700 dark:text-gray-300">18 - 25 años</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="q7" value="26_40" class="mr-3 text-primary-600">
+                                    <span class="text-gray-700 dark:text-gray-300">26 - 40 años</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="q7" value="41_60" class="mr-3 text-primary-600">
+                                    <span class="text-gray-700 dark:text-gray-300">41 - 60 años</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="q7" value="mayor_60" class="mr-3 text-primary-600">
+                                    <span class="text-gray-700 dark:text-gray-300">Más de 60 años</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="question-block fade-in">
+                            <label class="block text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                                8. ¿Con qué frecuencia donas a organizaciones solidarias?
+                            </label>
+                            <div class="space-y-2">
+                                <label class="flex items-center">
+                                    <input type="radio" name="q8" value="regularmente" class="mr-3 text-primary-600">
+                                    <span class="text-gray-700 dark:text-gray-300">Regularmente (mensual o anual)</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="q8" value="ocasionalmente" class="mr-3 text-primary-600">
+                                    <span class="text-gray-700 dark:text-gray-300">Ocasionalmente (eventos, campañas puntuales)</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="q8" value="rara_vez" class="mr-3 text-primary-600">
+                                    <span class="text-gray-700 dark:text-gray-300">Muy rara vez</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="q8" value="nunca" class="mr-3 text-primary-600">
+                                    <span class="text-gray-700 dark:text-gray-300">Nunca</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="question-block fade-in">
+                            <label class="block text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                                9. ¿Qué te motivaría más a colaborar con una causa como esta?
+                            </label>
+                            <div class="space-y-2">
+                                <label class="flex items-center">
+                                    <input type="radio" name="q9" value="testimonios" class="mr-3 text-primary-600">
+                                    <span class="text-gray-700 dark:text-gray-300">Conocer testimonios reales de familias</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="q9" value="transparencia" class="mr-3 text-primary-600">
+                                    <span class="text-gray-700 dark:text-gray-300">Ver transparencia en el uso de fondos</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="q9" value="recomendacion" class="mr-3 text-primary-600">
+                                    <span class="text-gray-700 dark:text-gray-300">Que me lo recomiende alguien cercano</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="q9" value="facilidad" class="mr-3 text-primary-600">
+                                    <span class="text-gray-700 dark:text-gray-300">Que se me facilite un medio rápido de colaborar</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="q9" value="otro" class="mr-3 text-primary-600">
+                                    <span class="text-gray-700 dark:text-gray-300">Otro (especificar)</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="question-block fade-in">
+                            <label class="block text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                                10. ¿Quieres recibir información sobre cómo colaborar con Ángeles Sin Alas?
+                            </label>
+                            <div class="space-y-2">
+                                <label class="flex items-center">
+                                    <input type="radio" name="q10" value="email" class="mr-3 text-primary-600">
+                                    <span class="text-gray-700 dark:text-gray-300">Sí, por correo electrónico</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="q10" value="redes" class="mr-3 text-primary-600">
+                                    <span class="text-gray-700 dark:text-gray-300">Sí, por redes sociales</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="q10" value="no" class="mr-3 text-primary-600">
+                                    <span class="text-gray-700 dark:text-gray-300">No, gracias</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end space-x-4 pt-6 border-t border-gray-200 dark:border-gray-600">
+                        <button type="button" onclick="closeSurveyModal()"
+                            class="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                            Cancelar
+                        </button>
+                        <button type="submit"
+                            class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors">
+                            Completar Encuesta (+5 EUR)
+                        </button>
+                    </div>
+                </form>
+            `;
+        }
+
+        function generateCommunicationSurveyHTML() {
+            return `
+                <form onsubmit="submitAdditionalSurvey(event, 'communication')" class="space-y-8">
+                    <div class="question-block fade-in">
+                        <label class="block text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                            ¿Cómo prefieres recibir información sobre causas solidarias?
+                        </label>
+                        <div class="space-y-2">
+                            <label class="flex items-center">
+                                <input type="radio" name="communication_q1" value="email" class="mr-3 text-primary-600" required>
+                                <span class="text-gray-700 dark:text-gray-300">Email</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="communication_q1" value="sms" class="mr-3 text-primary-600">
+                                <span class="text-gray-700 dark:text-gray-300">SMS</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="communication_q1" value="redes" class="mr-3 text-primary-600">
+                                <span class="text-gray-700 dark:text-gray-300">Redes sociales</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="communication_q1" value="no_recibir" class="mr-3 text-primary-600">
+                                <span class="text-gray-700 dark:text-gray-300">No deseo recibir</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end space-x-4 pt-6 border-t border-gray-200 dark:border-gray-600">
+                        <button type="button" onclick="closeSurveyModal()"
+                            class="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                            Cancelar
+                        </button>
+                        <button type="submit"
+                            class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">
+                            Completar Encuesta (+1 EUR)
+                        </button>
+                    </div>
+                </form>
+            `;
+        }
+
+        function generateDonationsSurveyHTML() {
+            return `
+                <form onsubmit="submitAdditionalSurvey(event, 'donations')" class="space-y-8">
+                    <div class="question-block fade-in">
+                        <label class="block text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                            ¿Has utilizado plataformas digitales para hacer donaciones antes?
+                        </label>
+                        <div class="space-y-2">
+                            <label class="flex items-center">
+                                <input type="radio" name="donations_q1" value="frecuentemente" class="mr-3 text-primary-600" required>
+                                <span class="text-gray-700 dark:text-gray-300">Sí, frecuentemente</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="donations_q1" value="ocasionalmente" class="mr-3 text-primary-600">
+                                <span class="text-gray-700 dark:text-gray-300">Ocasionalmente</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="donations_q1" value="nunca" class="mr-3 text-primary-600">
+                                <span class="text-gray-700 dark:text-gray-300">Nunca</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="donations_q1" value="no_confio" class="mr-3 text-primary-600">
+                                <span class="text-gray-700 dark:text-gray-300">No confío en plataformas digitales</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end space-x-4 pt-6 border-t border-gray-200 dark:border-gray-600">
+                        <button type="button" onclick="closeSurveyModal()"
+                            class="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                            Cancelar
+                        </button>
+                        <button type="submit"
+                            class="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors">
+                            Completar Encuesta (+1 EUR)
+                        </button>
+                    </div>
+                </form>
+            `;
+        }
+
+        function generateSocioeconomicSurveyHTML() {
+            return `
+                <form onsubmit="submitAdditionalSurvey(event, 'socioeconomic')" class="space-y-8">
+                    <div class="question-block fade-in">
+                        <label class="block text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                            ¿Cuál es tu nivel de ingresos aproximado?
+                        </label>
+                        <div class="space-y-2">
+                            <label class="flex items-center">
+                                <input type="radio" name="socioeconomic_q1" value="no_decir" class="mr-3 text-primary-600" required>
+                                <span class="text-gray-700 dark:text-gray-300">Prefiero no decir</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="socioeconomic_q1" value="bajo" class="mr-3 text-primary-600">
+                                <span class="text-gray-700 dark:text-gray-300">Bajo</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="socioeconomic_q1" value="medio" class="mr-3 text-primary-600">
+                                <span class="text-gray-700 dark:text-gray-300">Medio</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="socioeconomic_q1" value="alto" class="mr-3 text-primary-600">
+                                <span class="text-gray-700 dark:text-gray-300">Alto</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end space-x-4 pt-6 border-t border-gray-200 dark:border-gray-600">
+                        <button type="button" onclick="closeSurveyModal()"
+                            class="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                            Cancelar
+                        </button>
+                        <button type="submit"
+                            class="px-6 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-medium transition-colors">
+                            Completar Encuesta (+1 EUR)
+                        </button>
+                    </div>
+                </form>
+            `;
+        }
+
+        function generateVolunteerSurveyHTML() {
+            return `
+                <form onsubmit="submitAdditionalSurvey(event, 'volunteering')" class="space-y-8">
+                    <div class="question-block fade-in">
+                        <label class="block text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                            ¿Estarías interesado/a en participar como voluntario presencial en Baleares?
+                        </label>
+                        <div class="space-y-2">
+                            <label class="flex items-center">
+                                <input type="radio" name="volunteering_q1" value="definitivamente" class="mr-3 text-primary-600" required>
+                                <span class="text-gray-700 dark:text-gray-300">Sí, definitivamente</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="volunteering_q1" value="tal_vez" class="mr-3 text-primary-600">
+                                <span class="text-gray-700 dark:text-gray-300">Tal vez</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="volunteering_q1" value="no_pero_online" class="mr-3 text-primary-600">
+                                <span class="text-gray-700 dark:text-gray-300">No, pero sí online</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="volunteering_q1" value="no_interesa" class="mr-3 text-primary-600">
+                                <span class="text-gray-700 dark:text-gray-300">No me interesa</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end space-x-4 pt-6 border-t border-gray-200 dark:border-gray-600">
+                        <button type="button" onclick="closeSurveyModal()"
+                            class="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                            Cancelar
+                        </button>
+                        <button type="submit"
+                            class="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors">
+                            Completar Encuesta (+1 EUR)
+                        </button>
+                    </div>
+                </form>
+            `;
+        }
+
+        function generateFeedbackSurveyHTML() {
+            return `
+                <form onsubmit="submitAdditionalSurvey(event, 'feedback')" class="space-y-8">
+                    <div class="question-block fade-in">
+                        <label class="block text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                            ¿Cómo valorarías esta plataforma de encuestas?
+                        </label>
+                        <div class="space-y-2">
+                            <label class="flex items-center">
+                                <input type="radio" name="feedback_q1" value="muy_util" class="mr-3 text-primary-600" required>
+                                <span class="text-gray-700 dark:text-gray-300">Muy útil</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="feedback_q1" value="util" class="mr-3 text-primary-600">
+                                <span class="text-gray-700 dark:text-gray-300">Útil</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="feedback_q1" value="regular" class="mr-3 text-primary-600">
+                                <span class="text-gray-700 dark:text-gray-300">Regular</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="feedback_q1" value="poco_util" class="mr-3 text-primary-600">
+                                <span class="text-gray-700 dark:text-gray-300">Poco útil</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="feedback_q1" value="sugiero_mejoras" class="mr-3 text-primary-600">
+                                <span class="text-gray-700 dark:text-gray-300">Sugiero mejoras</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="question-block fade-in">
+                        <label class="block text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                            ¿Qué mejorarías de esta plataforma? (Opcional)
+                        </label>
+                        <textarea name="feedback_suggestions" rows="4" 
+                            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                            placeholder="Comparte tus sugerencias..."></textarea>
+                    </div>
+
+                    <div class="flex justify-end space-x-4 pt-6 border-t border-gray-200 dark:border-gray-600">
+                        <button type="button" onclick="closeSurveyModal()"
+                            class="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                            Cancelar
+                        </button>
+                        <button type="submit"
+                            class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors">
+                            Completar Encuesta (+1 EUR)
+                        </button>
+                    </div>
+                </form>
+            `;
+        }
+
+        // Survey Submission Functions
+        async function submitMainSurvey(event) {
+            event.preventDefault();
+            
+            const formData = new FormData(event.target);
+            const responses = {};
+            
+            // Recopilar respuestas
+            for (let [key, value] of formData.entries()) {
+                if (responses[key]) {
+                    if (Array.isArray(responses[key])) {
+                        responses[key].push(value);
+                    } else {
+                        responses[key] = [responses[key], value];
+                    }
+                } else {
+                    responses[key] = value;
+                }
+            }
+            
+            try {
+                const response = await fetch('/api/surveys/1/submit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ responses })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    appState.completedSurveys.add('main');
+                    appState.balance += 5;
+                    updateBalance();
+                    updateSurveyStates();
+                    closeSurveyModal();
+                    showMessage('¡Encuesta completada! +5 EUR añadidos a tu saldo', 'success');
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                showMessage(error.message, 'error');
+            }
+        }
+
+        function submitAdditionalSurvey(event, surveyType) {
+            event.preventDefault();
+
+            const formData = new FormData(event.target);
+            const responses = {};
+
+            for (let [key, value] of formData.entries()) {
+                responses[key] = value;
+            }
+
+            console.log(`${surveyType} survey responses:`, responses);
+
+            // Mark as completed and add reward
+            const surveyKey = `additional_${getSurveyId(surveyType)}`;
+            appState.completedSurveys.add(surveyKey);
+            appState.balance += 1;
+
+            // Save to localStorage
+            localStorage.setItem('completedSurveys', JSON.stringify([...appState.completedSurveys]));
+            localStorage.setItem('userBalance', appState.balance.toString());
+
+            // Update UI
+            updateBalance();
+            updateSurveyStates();
+            closeSurveyModal();
+
+            showMessage('¡Encuesta completada! +1 EUR añadido a tu saldo', 'success');
+        }
+
+        function getSurveyId(surveyType) {
+            const mapping = {
+                'communication': 1,
+                'donations': 2,
+                'socioeconomic': 3,
+                'volunteering': 4,
+                'feedback': 5
+            };
+            return mapping[surveyType] || 1;
+        }
+
+        // Update survey states (mark as completed)
+        function updateSurveyStates() {
+            const surveyCards = document.querySelectorAll('.survey-card');
+
+            surveyCards.forEach((card, index) => {
+                let surveyKey;
+                if (index === 0) {
+                    surveyKey = 'main';
+                } else {
+                    surveyKey = `additional_${index}`;
+                }
+
+                if (appState.completedSurveys.has(surveyKey)) {
+                    card.style.opacity = '0.6';
+                    card.style.cursor = 'not-allowed';
+
+                    // Add completed badge
+                    if (!card.querySelector('.completed-badge')) {
+                        const badge = document.createElement('div');
+                        badge.className = 'completed-badge absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-semibold';
+                        badge.textContent = 'Completada';
+                        card.style.position = 'relative';
+                        card.appendChild(badge);
+                    }
+                }
+            });
+        }
+
+        // Withdrawal Functions
+        function openWithdrawModal() {
+            if (appState.balance < 5) {
+                showMessage('Necesitas al menos 5 EUR para retirar', 'warning');
+                return;
+            }
+
+            document.getElementById('modal-balance').textContent = appState.balance.toFixed(2);
+            document.getElementById('withdrawModal').classList.remove('hidden');
+        }
+
+        function closeWithdrawModal() {
+            document.getElementById('withdrawModal').classList.add('hidden');
+            document.getElementById('paypal-form').reset();
+        }
+
+        function processWithdrawal(event) {
+            event.preventDefault();
+
+            const email = document.getElementById('paypal-email').value;
+            const password = document.getElementById('paypal-password').value;
+
+            if (!email || !password) {
+                showMessage('Por favor, completa todos los campos', 'error');
+                return;
+            }
+
+            // Simulate processing
+            showMessage('Procesando retiro...', 'info');
+
+            setTimeout(() => {
+                // Simulate successful withdrawal
+                appState.balance = 0;
+                localStorage.setItem('userBalance', '0');
+                updateBalance();
+                closeWithdrawModal();
+                showMessage(`Retiro exitoso enviado a ${email}`, 'success');
+            }, 2000);
+        }
+
+        // Referral Functions
+        function copyReferralLink() {
+            const referralLink = `https://angelessinalas.com/encuestas?ref=${appState.referralCode}`;
+
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(referralLink).then(() => {
+                    showMessage('Enlace de referido copiado al portapapeles', 'success');
+                });
+            } else {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = referralLink;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showMessage('Enlace de referido copiado al portapapeles', 'success');
+            }
+        }
+
+        // Utility Functions
+        function scrollToSurveys() {
+            document.getElementById('surveys-section').scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+
+        function showMessage(message, type = 'success') {
+            const messageEl = document.getElementById('successMessage');
+            const textEl = document.getElementById('successText');
+
+            // Set message
+            textEl.textContent = message;
+
+            // Set color based on type
+            messageEl.querySelector('div').className = `flex items-center space-x-2 px-6 py-3 rounded-lg shadow-lg success-message text-white ${type === 'success' ? 'bg-green-500' :
+                    type === 'error' ? 'bg-red-500' :
+                        type === 'warning' ? 'bg-yellow-500' :
+                            'bg-blue-500'
+                }`;
+
+            // Show message
+            messageEl.classList.remove('hidden');
+
+            // Hide after 3 seconds
+            setTimeout(() => {
+                messageEl.classList.add('hidden');
+            }, 3000);
+        }
+
+        // Check for referral parameter on load
+        function checkReferralParam() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const referralCode = urlParams.get('ref');
+
+            if (referralCode) {
+                // In a real app, this would register the referral
+                showMessage('¡Bienvenido! Has sido referido por un amigo', 'success');
+
+                // Simulate adding a referral for demonstration
+                setTimeout(() => {
+                    appState.referralCount += 1;
+                    localStorage.setItem('referralCount', appState.referralCount.toString());
+                    updateReferralProgress();
+
+                    if (appState.referralCount >= 10) {
+                        appState.balance += 10;
+                        localStorage.setItem('userBalance', appState.balance.toString());
+                        updateBalance();
+                        showMessage('¡Felicidades! Has alcanzado 10 referidos. +10 EUR de bonus', 'success');
+                    }
+                }, 1000);
+            }
+        }
+
+        // Initialize referral check
+        document.addEventListener('DOMContentLoaded', function () {
+            checkReferralParam();
+        });
+
+        // Add demo functionality to simulate referrals
+        function simulateReferral() {
+            if (appState.referralCount < 10) {
+                appState.referralCount += 1;
+                localStorage.setItem('referralCount', appState.referralCount.toString());
+                updateReferralProgress();
+                showMessage(`¡Nuevo referido! Total: ${appState.referralCount}/10`, 'success');
+
+                if (appState.referralCount >= 10) {
+                    setTimeout(() => {
+                        appState.balance += 10;
+                        localStorage.setItem('userBalance', appState.balance.toString());
+                        updateBalance();
+                        showMessage('¡Felicidades! Has alcanzado 10 referidos. +10 EUR de bonus', 'success');
+                    }, 1000);
+                }
+            }
+        }
+
+        // Add keyboard shortcuts for demo
+        document.addEventListener('keydown', function (e) {
+            if (e.ctrlKey && e.shiftKey) {
+                switch (e.key) {
+                    case 'R':
+                        e.preventDefault();
+                        simulateReferral();
+                        break;
+                    case 'C':
+                        e.preventDefault();
+                        // Complete all surveys for demo
+                        ['main', 'additional_1', 'additional_2', 'additional_3', 'additional_4', 'additional_5'].forEach(key => {
+                            if (!appState.completedSurveys.has(key)) {
+                                appState.completedSurveys.add(key);
+                                appState.balance += (key === 'main' ? 5 : 1);
+                            }
+                        });
+                        localStorage.setItem('completedSurveys', JSON.stringify([...appState.completedSurveys]));
+                        localStorage.setItem('userBalance', appState.balance.toString());
+                        updateBalance();
+                        updateSurveyStates();
+                        showMessage('Todas las encuestas completadas (modo demo)', 'success');
+                        break;
+                    case 'D':
+                        e.preventDefault();
+                        // Reset demo data
+                        appState.balance = 0;
+                        appState.referralCount = 0;
+                        appState.completedSurveys.clear();
+                        localStorage.removeItem('completedSurveys');
+                        localStorage.removeItem('userBalance');
+                        localStorage.removeItem('referralCount');
+                        updateBalance();
+                        updateReferralProgress();
+                        location.reload();
+                        break;
+                }
+            }
+        });
+
+        console.log('Demo shortcuts:');
+        console.log('Ctrl+Shift+R: Simulate referral');
+        console.log('Ctrl+Shift+C: Complete all surveys');
+        console.log('Ctrl+Shift+D: Reset demo data');
+    </script>
+</body>
+
+</html>
