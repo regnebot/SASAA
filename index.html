@@ -29,6 +29,11 @@
             overflow: hidden;
         }
 
+        .carousel-wrapper {
+            display: flex;
+            transition: transform 0.5s ease-in-out;
+        }
+
         .carousel-slide {
             min-width: 100%;
             transition: transform 0.5s ease-in-out;
@@ -83,22 +88,6 @@
                 transform: translateY(0);
             }
         }
-
-        .success-message {
-            animation: slideDown 0.3s ease-out;
-        }
-
-        @keyframes slideDown {
-            from {
-                transform: translateY(-100%);
-                opacity: 0;
-            }
-
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
     </style>
 </head>
 
@@ -121,7 +110,9 @@
             <div class="flex justify-between items-center h-16">
                 <!-- Logo and Association Name -->
                 <div class="flex items-center space-x-4">
-                    <img src="logo.png" alt="Logo" class="w-10 h-10 rounded-full object-cover" />
+                    <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+                        <span class="text-white font-bold text-lg">A</span>
+                    </div>
                     <h1 class="text-xl font-bold text-gray-900 dark:text-white">Ángeles Sin Alas</h1>
                 </div>
 
@@ -156,8 +147,8 @@
         <!-- Hero Section with Carousel -->
         <div class="mb-12">
             <div class="carousel-container bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
-                <div class="carousel-wrapper flex" id="carousel">
-                    <div class="carousel-slide bg-[url('carrousel1.png')] bg-cover bg-center text-white p-12">
+                <div class="carousel-wrapper" id="carousel">
+                    <div class="carousel-slide bg-gradient-to-r from-blue-600 to-purple-600 text-white p-12">
                         <div class="max-w-4xl mx-auto text-center bg-black/40 p-6 rounded-lg">
                             <h2 class="text-4xl font-bold mb-4">Ayuda a Niños en Cuidados Paliativos</h2>
                             <p class="text-xl opacity-90 mb-8">Trabajamos apoyando a niños con enfermedades graves y a
@@ -169,7 +160,7 @@
                         </div>
                     </div>
 
-                    <div class="carousel-slide bg-[url('carrousel2.png')] bg-cover bg-center text-white p-12">
+                    <div class="carousel-slide bg-gradient-to-r from-green-500 to-blue-500 text-white p-12">
                         <div class="max-w-4xl mx-auto text-center bg-black/40 p-6 rounded-lg">
                             <h2 class="text-4xl font-bold mb-4">Gana por Ayudar</h2>
                             <p class="text-xl opacity-90 mb-8">Completa encuestas y gana hasta 10 EUR. Cada respuesta
@@ -181,7 +172,7 @@
                         </div>
                     </div>
 
-                    <div class="carousel-slide bg-[url('carrousel3.png')] bg-cover bg-center text-white p-12">
+                    <div class="carousel-slide bg-gradient-to-r from-purple-500 to-pink-500 text-white p-12">
                         <div class="max-w-4xl mx-auto text-center bg-black/40 p-6 rounded-lg">
                             <h2 class="text-4xl font-bold mb-4">Invita y Gana Más</h2>
                             <p class="text-xl opacity-90 mb-8">Comparte tu enlace de referido y gana 1 EUR por cada
@@ -377,7 +368,7 @@
 
     <!-- PayPal Withdrawal Modal -->
     <div id="withdrawModal" class="fixed inset-0 z-50 hidden">
-        <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"></div>
+        <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onclick="closeWithdrawModal()"></div>
         <div class="fixed inset-0 overflow-y-auto">
             <div class="flex min-h-full items-center justify-center p-4">
                 <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6">
@@ -452,7 +443,7 @@
 
     <!-- Survey Modal -->
     <div id="surveyModal" class="fixed inset-0 z-50 hidden">
-        <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"></div>
+        <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onclick="closeSurveyModal()"></div>
         <div class="fixed inset-0 overflow-y-auto">
             <div class="flex min-h-full items-center justify-center p-4">
                 <div
@@ -478,14 +469,15 @@
     </div>
 
     <script>
-        // Application State
+        // Application State - Usando variables en memoria en lugar de localStorage
         const appState = {
             balance: 0,
             referralCount: 0,
             completedSurveys: new Set(),
             currentSlide: 0,
             referralCode: 'REF' + Math.random().toString(36).substr(2, 6).toUpperCase(),
-            darkMode: localStorage.getItem('darkMode') === 'true' || false
+            darkMode: false,
+            userId: null
         };
 
         // Initialize app on load
@@ -494,8 +486,10 @@
         });
 
         function initializeApp() {
-            // Set dark mode
-            if (appState.darkMode) {
+            // Check for saved dark mode preference
+            const savedDarkMode = localStorage.getItem('darkMode');
+            if (savedDarkMode === 'true') {
+                appState.darkMode = true;
                 document.documentElement.classList.add('dark');
             }
 
@@ -506,23 +500,39 @@
             updateBalance();
             updateReferralProgress();
 
-            // Load completed surveys from localStorage (simulating persistence)
-            const saved = localStorage.getItem('completedSurveys');
-            if (saved) {
-                appState.completedSurveys = new Set(JSON.parse(saved));
-                updateSurveyStates();
-            }
+            // Load user data if available
+            loadUserData();
+        }
 
-            const savedBalance = localStorage.getItem('userBalance');
-            if (savedBalance) {
-                appState.balance = parseFloat(savedBalance);
-                updateBalance();
-            }
+        // Load user data from server or localStorage
+        async function loadUserData() {
+            try {
+                // Try to get saved user data
+                const savedUserId = localStorage.getItem('userId');
+                const savedBalance = localStorage.getItem('userBalance');
+                const savedReferrals = localStorage.getItem('referralCount');
+                const savedCompleted = localStorage.getItem('completedSurveys');
 
-            const savedReferrals = localStorage.getItem('referralCount');
-            if (savedReferrals) {
-                appState.referralCount = parseInt(savedReferrals);
-                updateReferralProgress();
+                if (savedUserId) {
+                    appState.userId = savedUserId;
+                }
+
+                if (savedBalance) {
+                    appState.balance = parseFloat(savedBalance);
+                    updateBalance();
+                }
+
+                if (savedReferrals) {
+                    appState.referralCount = parseInt(savedReferrals);
+                    updateReferralProgress();
+                }
+
+                if (savedCompleted) {
+                    appState.completedSurveys = new Set(JSON.parse(savedCompleted));
+                    updateSurveyStates();
+                }
+            } catch (error) {
+                console.error('Error loading user data:', error);
             }
         }
 
@@ -541,26 +551,9 @@
             }, 5000);
         }
 
-        function goToSlide(index) {
-            appState.currentSlide = index;
-            updateCarousel();
-        }
-
         function updateCarousel() {
             const carousel = document.getElementById('carousel');
-            const indicators = document.querySelectorAll('.carousel-indicator');
-
             carousel.style.transform = `translateX(-${appState.currentSlide * 100}%)`;
-
-            indicators.forEach((indicator, index) => {
-                if (index === appState.currentSlide) {
-                    indicator.classList.add('bg-opacity-100');
-                    indicator.classList.remove('bg-opacity-50');
-                } else {
-                    indicator.classList.add('bg-opacity-50');
-                    indicator.classList.remove('bg-opacity-100');
-                }
-            });
         }
 
         // Balance and UI Updates
@@ -577,13 +570,15 @@
             const progressElement = document.getElementById('referral-progress');
             const progressCircle = document.getElementById('progress-circle');
 
-            countElement.textContent = count;
-            progressElement.textContent = `${count}/10`;
+            if (countElement) countElement.textContent = count;
+            if (progressElement) progressElement.textContent = `${count}/10`;
 
             // Update progress circle
-            const percentage = Math.min(count / 10 * 100, 100);
-            const offset = 100 - percentage;
-            progressCircle.style.strokeDashoffset = offset;
+            if (progressCircle) {
+                const percentage = Math.min(count / 10 * 100, 100);
+                const offset = 100 - percentage;
+                progressCircle.style.strokeDashoffset = offset;
+            }
         }
 
         // Survey Functions
@@ -638,7 +633,7 @@
                             </label>
                             <div class="space-y-2">
                                 <label class="flex items-center">
-                                    <input type="radio" name="q1" value="si" class="mr-3 text-primary-600">
+                                    <input type="radio" name="q1" value="si" class="mr-3 text-primary-600" required>
                                     <span class="text-gray-700 dark:text-gray-300">Sí</span>
                                 </label>
                                 <label class="flex items-center">
@@ -658,7 +653,7 @@
                             </label>
                             <div class="space-y-2">
                                 <label class="flex items-center">
-                                    <input type="radio" name="q2" value="muy_importante" class="mr-3 text-primary-600">
+                                    <input type="radio" name="q2" value="muy_importante" class="mr-3 text-primary-600" required>
                                     <span class="text-gray-700 dark:text-gray-300">Muy importante</span>
                                 </label>
                                 <label class="flex items-center">
@@ -678,11 +673,11 @@
 
                         <div class="question-block fade-in">
                             <label class="block text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                                3. ¿Has colaborado alguna vez with una ONG o asociación solidaria?
+                                3. ¿Has colaborado alguna vez con una ONG o asociación solidaria?
                             </label>
                             <div class="space-y-2">
                                 <label class="flex items-center">
-                                    <input type="radio" name="q3" value="economica" class="mr-3 text-primary-600">
+                                    <input type="radio" name="q3" value="economica" class="mr-3 text-primary-600" required>
                                     <span class="text-gray-700 dark:text-gray-300">Sí, de forma económica</span>
                                 </label>
                                 <label class="flex items-center">
@@ -734,7 +729,7 @@
                             </label>
                             <div class="space-y-2">
                                 <label class="flex items-center">
-                                    <input type="radio" name="q5" value="economico" class="mr-3 text-primary-600">
+                                    <input type="radio" name="q5" value="economico" class="mr-3 text-primary-600" required>
                                     <span class="text-gray-700 dark:text-gray-300">Apoyo económico</span>
                                 </label>
                                 <label class="flex items-center">
@@ -761,7 +756,7 @@
                                 6. ¿En qué parte del mundo vives actualmente?
                             </label>
                             <input type="text" name="q6" placeholder="Ej: Madrid, España" 
-                                class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                                class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" required>
                         </div>
 
                         <div class="question-block fade-in">
@@ -770,7 +765,7 @@
                             </label>
                             <div class="space-y-2">
                                 <label class="flex items-center">
-                                    <input type="radio" name="q7" value="menor_18" class="mr-3 text-primary-600">
+                                    <input type="radio" name="q7" value="menor_18" class="mr-3 text-primary-600" required>
                                     <span class="text-gray-700 dark:text-gray-300">Menos de 18 años</span>
                                 </label>
                                 <label class="flex items-center">
@@ -798,7 +793,7 @@
                             </label>
                             <div class="space-y-2">
                                 <label class="flex items-center">
-                                    <input type="radio" name="q8" value="regularmente" class="mr-3 text-primary-600">
+                                    <input type="radio" name="q8" value="regularmente" class="mr-3 text-primary-600" required>
                                     <span class="text-gray-700 dark:text-gray-300">Regularmente (mensual o anual)</span>
                                 </label>
                                 <label class="flex items-center">
@@ -822,7 +817,7 @@
                             </label>
                             <div class="space-y-2">
                                 <label class="flex items-center">
-                                    <input type="radio" name="q9" value="testimonios" class="mr-3 text-primary-600">
+                                    <input type="radio" name="q9" value="testimonios" class="mr-3 text-primary-600" required>
                                     <span class="text-gray-700 dark:text-gray-300">Conocer testimonios reales de familias</span>
                                 </label>
                                 <label class="flex items-center">
@@ -850,7 +845,7 @@
                             </label>
                             <div class="space-y-2">
                                 <label class="flex items-center">
-                                    <input type="radio" name="q10" value="email" class="mr-3 text-primary-600">
+                                    <input type="radio" name="q10" value="email" class="mr-3 text-primary-600" required>
                                     <span class="text-gray-700 dark:text-gray-300">Sí, por correo electrónico</span>
                                 </label>
                                 <label class="flex items-center">
@@ -870,7 +865,7 @@
                             class="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                             Cancelar
                         </button>
-                        <button type="submit"
+                        <button type="submit" id="submit-btn"
                             class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors">
                             Completar Encuesta (+5 EUR)
                         </button>
@@ -970,18 +965,6 @@
                         </label>
                         <div class="space-y-2">
                             <label class="flex items-center">
-                                <input type="radio" name="socioeconomic_q1" value="no_decir" class="mr-3 text-primary-600" required>
-                                <span class="text-gray-700 dark:text-gray-300">Prefiero no decir</span>
-                            </label>
-                            <label class="flex items-center">
-                                <input type="radio" name="socioeconomic_q1" value="bajo" class="mr-3 text-primary-600">
-                                <span class="text-gray-700 dark:text-gray-300">Bajo</span>
-                            </label>
-                            <label class="flex items-center">
-                                <input type="radio" name="socioeconomic_q1" value="medio" class="mr-3 text-primary-600">
-                                <span class="text-gray-700 dark:text-gray-300">Medio</span>
-                            </label>
-                            <label class="flex items-center">
                                 <input type="radio" name="socioeconomic_q1" value="alto" class="mr-3 text-primary-600">
                                 <span class="text-gray-700 dark:text-gray-300">Alto</span>
                             </label>
@@ -1067,10 +1050,6 @@
                                 <input type="radio" name="feedback_q1" value="poco_util" class="mr-3 text-primary-600">
                                 <span class="text-gray-700 dark:text-gray-300">Poco útil</span>
                             </label>
-                            <label class="flex items-center">
-                                <input type="radio" name="feedback_q1" value="sugiero_mejoras" class="mr-3 text-primary-600">
-                                <span class="text-gray-700 dark:text-gray-300">Sugiero mejoras</span>
-                            </label>
                         </div>
                     </div>
 
@@ -1100,10 +1079,14 @@
         // Survey Submission Functions
         async function submitMainSurvey(event) {
             event.preventDefault();
-            
+
+            const submitBtn = document.getElementById('submit-btn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Enviando...';
+
             const formData = new FormData(event.target);
             const responses = {};
-            
+
             // Recopilar respuestas
             for (let [key, value] of formData.entries()) {
                 if (responses[key]) {
@@ -1116,34 +1099,40 @@
                     responses[key] = value;
                 }
             }
-            
+
             try {
-                const response = await fetch('/api/surveys/1/submit', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ responses })
-                });
+                // Simulate API call
+                await new Promise(resolve => setTimeout(resolve, 1500));
+
+                // Update state
+                appState.completedSurveys.add('main');
+                appState.balance += 5;
                 
-                const result = await response.json();
-                
-                if (result.success) {
-                    appState.completedSurveys.add('main');
-                    appState.balance += 5;
-                    updateBalance();
-                    updateSurveyStates();
-                    closeSurveyModal();
-                    showMessage('¡Encuesta completada! +5 EUR añadidos a tu saldo', 'success');
-                } else {
-                    throw new Error(result.error);
+                // Generate user ID if doesn't exist
+                if (!appState.userId) {
+                    appState.userId = 'user_' + Math.random().toString(36).substr(2, 9);
+                    localStorage.setItem('userId', appState.userId);
                 }
+
+                // Save to localStorage
+                localStorage.setItem('completedSurveys', JSON.stringify([...appState.completedSurveys]));
+                localStorage.setItem('userBalance', appState.balance.toString());
+
+                updateBalance();
+                updateSurveyStates();
+                closeSurveyModal();
+                showMessage('¡Encuesta completada! +5 EUR añadidos a tu saldo', 'success');
+                
             } catch (error) {
-                showMessage(error.message, 'error');
+                console.error('Survey submission error:', error);
+                showMessage('Error enviando encuesta', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Completar Encuesta (+5 EUR)';
             }
         }
 
-        function submitAdditionalSurvey(event, surveyType) {
+        async function submitAdditionalSurvey(event, surveyType) {
             event.preventDefault();
 
             const formData = new FormData(event.target);
@@ -1153,32 +1142,44 @@
                 responses[key] = value;
             }
 
-            console.log(`${surveyType} survey responses:`, responses);
+            const surveyId = getSurveyId(surveyType);
 
-            // Mark as completed and add reward
-            const surveyKey = `additional_${getSurveyId(surveyType)}`;
-            appState.completedSurveys.add(surveyKey);
-            appState.balance += 1;
+            try {
+                // Simulate API call
+                await new Promise(resolve => setTimeout(resolve, 1000));
 
-            // Save to localStorage
-            localStorage.setItem('completedSurveys', JSON.stringify([...appState.completedSurveys]));
-            localStorage.setItem('userBalance', appState.balance.toString());
+                // Update state
+                const surveyKey = `additional_${surveyId}`;
+                appState.completedSurveys.add(surveyKey);
+                appState.balance += 1;
 
-            // Update UI
-            updateBalance();
-            updateSurveyStates();
-            closeSurveyModal();
+                if (!appState.userId) {
+                    appState.userId = 'user_' + Math.random().toString(36).substr(2, 9);
+                    localStorage.setItem('userId', appState.userId);
+                }
 
-            showMessage('¡Encuesta completada! +1 EUR añadido a tu saldo', 'success');
+                // Save to localStorage
+                localStorage.setItem('completedSurveys', JSON.stringify([...appState.completedSurveys]));
+                localStorage.setItem('userBalance', appState.balance.toString());
+
+                updateBalance();
+                updateSurveyStates();
+                closeSurveyModal();
+                showMessage('¡Encuesta completada! +1 EUR añadido a tu saldo', 'success');
+                
+            } catch (error) {
+                console.error('Additional survey error:', error);
+                showMessage('Error enviando encuesta', 'error');
+            }
         }
 
         function getSurveyId(surveyType) {
             const mapping = {
-                'communication': 1,
-                'donations': 2,
-                'socioeconomic': 3,
-                'volunteering': 4,
-                'feedback': 5
+                'communication': 2,
+                'donations': 3,
+                'socioeconomic': 4,
+                'volunteering': 5,
+                'feedback': 6
             };
             return mapping[surveyType] || 1;
         }
@@ -1192,12 +1193,13 @@
                 if (index === 0) {
                     surveyKey = 'main';
                 } else {
-                    surveyKey = `additional_${index}`;
+                    surveyKey = `additional_${index + 1}`;
                 }
 
                 if (appState.completedSurveys.has(surveyKey)) {
                     card.style.opacity = '0.6';
                     card.style.cursor = 'not-allowed';
+                    card.onclick = null;
 
                     // Add completed badge
                     if (!card.querySelector('.completed-badge')) {
@@ -1227,7 +1229,7 @@
             document.getElementById('paypal-form').reset();
         }
 
-        function processWithdrawal(event) {
+        async function processWithdrawal(event) {
             event.preventDefault();
 
             const email = document.getElementById('paypal-email').value;
@@ -1238,22 +1240,27 @@
                 return;
             }
 
-            // Simulate processing
             showMessage('Procesando retiro...', 'info');
 
-            setTimeout(() => {
-                // Simulate successful withdrawal
+            try {
+                // Simulate withdrawal processing
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
                 appState.balance = 0;
                 localStorage.setItem('userBalance', '0');
                 updateBalance();
                 closeWithdrawModal();
                 showMessage(`Retiro exitoso enviado a ${email}`, 'success');
-            }, 2000);
+                
+            } catch (error) {
+                console.error('Withdrawal error:', error);
+                showMessage('Error procesando retiro', 'error');
+            }
         }
 
         // Referral Functions
         function copyReferralLink() {
-            const referralLink = `https://angelessinalas.com/encuestas?ref=${appState.referralCode}`;
+            const referralLink = `${window.location.origin}?ref=${appState.referralCode}`;
 
             if (navigator.clipboard) {
                 navigator.clipboard.writeText(referralLink).then(() => {
@@ -1287,11 +1294,14 @@
             textEl.textContent = message;
 
             // Set color based on type
-            messageEl.querySelector('div').className = `flex items-center space-x-2 px-6 py-3 rounded-lg shadow-lg success-message text-white ${type === 'success' ? 'bg-green-500' :
-                    type === 'error' ? 'bg-red-500' :
-                        type === 'warning' ? 'bg-yellow-500' :
-                            'bg-blue-500'
-                }`;
+            const colors = {
+                'success': 'bg-green-500',
+                'error': 'bg-red-500',
+                'warning': 'bg-yellow-500',
+                'info': 'bg-blue-500'
+            };
+
+            messageEl.querySelector('div').className = `flex items-center space-x-2 px-6 py-3 rounded-lg shadow-lg success-message text-white ${colors[type] || colors.success}`;
 
             // Show message
             messageEl.classList.remove('hidden');
@@ -1308,7 +1318,6 @@
             const referralCode = urlParams.get('ref');
 
             if (referralCode) {
-                // In a real app, this would register the referral
                 showMessage('¡Bienvenido! Has sido referido por un amigo', 'success');
 
                 // Simulate adding a referral for demonstration
@@ -1332,7 +1341,7 @@
             checkReferralParam();
         });
 
-        // Add demo functionality to simulate referrals
+        // Demo functionality
         function simulateReferral() {
             if (appState.referralCount < 10) {
                 appState.referralCount += 1;
@@ -1351,7 +1360,7 @@
             }
         }
 
-        // Add keyboard shortcuts for demo
+        // Keyboard shortcuts for demo (opcional - puedes eliminar esto)
         document.addEventListener('keydown', function (e) {
             if (e.ctrlKey && e.shiftKey) {
                 switch (e.key) {
@@ -1362,7 +1371,7 @@
                     case 'C':
                         e.preventDefault();
                         // Complete all surveys for demo
-                        ['main', 'additional_1', 'additional_2', 'additional_3', 'additional_4', 'additional_5'].forEach(key => {
+                        ['main', 'additional_2', 'additional_3', 'additional_4', 'additional_5', 'additional_6'].forEach(key => {
                             if (!appState.completedSurveys.has(key)) {
                                 appState.completedSurveys.add(key);
                                 appState.balance += (key === 'main' ? 5 : 1);
@@ -1383,6 +1392,7 @@
                         localStorage.removeItem('completedSurveys');
                         localStorage.removeItem('userBalance');
                         localStorage.removeItem('referralCount');
+                        localStorage.removeItem('userId');
                         updateBalance();
                         updateReferralProgress();
                         location.reload();
@@ -1391,7 +1401,9 @@
             }
         });
 
-        console.log('Demo shortcuts:');
+        // Console info for developers
+        console.log('Ángeles Sin Alas - Survey Platform');
+        console.log('Demo shortcuts (optional):');
         console.log('Ctrl+Shift+R: Simulate referral');
         console.log('Ctrl+Shift+C: Complete all surveys');
         console.log('Ctrl+Shift+D: Reset demo data');
