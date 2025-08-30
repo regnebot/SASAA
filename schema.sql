@@ -242,7 +242,7 @@ INSERT INTO system_config (key, value, description) VALUES
 -- Funciones útiles para consultas
 
 -- Función para obtener el balance actual de un usuario
-CREATE OR REPLACE FUNCTION get_user_balance(user_uuid UUID) RETURNS DECIMAL(10,2) AS $
+CREATE OR REPLACE FUNCTION get_user_balance(user_uuid UUID) RETURNS DECIMAL(10,2) AS $$
 DECLARE
     balance DECIMAL(10,2) := 0.00;
 BEGIN
@@ -261,10 +261,10 @@ BEGIN
     
     RETURN balance;
 END;
-$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql;
 
 -- Función para verificar si un usuario puede completar una encuesta
-CREATE OR REPLACE FUNCTION can_user_complete_survey(user_uuid UUID, survey_key_param VARCHAR) RETURNS BOOLEAN AS $
+CREATE OR REPLACE FUNCTION can_user_complete_survey(user_uuid UUID, survey_key_param VARCHAR) RETURNS BOOLEAN AS $$
 DECLARE
     already_completed BOOLEAN := FALSE;
     survey_id_param INTEGER;
@@ -284,10 +284,10 @@ BEGIN
     
     RETURN NOT already_completed;
 END;
-$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql;
 
 -- Función para procesar recompensa de encuesta
-CREATE OR REPLACE FUNCTION process_survey_reward(user_uuid UUID, survey_key_param VARCHAR) RETURNS BOOLEAN AS $
+CREATE OR REPLACE FUNCTION process_survey_reward(user_uuid UUID, survey_key_param VARCHAR) RETURNS BOOLEAN AS $$
 DECLARE
     survey_record RECORD;
     can_complete BOOLEAN;
@@ -323,10 +323,10 @@ BEGIN
     
     RETURN TRUE;
 END;
-$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql;
 
 -- Función para procesar bonus de referidos
-CREATE OR REPLACE FUNCTION check_referral_bonus(user_uuid UUID) RETURNS BOOLEAN AS $
+CREATE OR REPLACE FUNCTION check_referral_bonus(user_uuid UUID) RETURNS BOOLEAN AS $$
 DECLARE
     referral_count INTEGER := 0;
     bonus_threshold INTEGER;
@@ -364,7 +364,7 @@ BEGIN
     
     RETURN FALSE;
 END;
-$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql;
 
 -- Vista para estadísticas de administrador
 CREATE OR REPLACE VIEW admin_stats AS
@@ -401,33 +401,6 @@ ALTER TABLE referrals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE withdrawal_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE activity_logs ENABLE ROW LEVEL SECURITY;
 
--- Ejemplo de políticas RLS (descomenta para usar con autenticación)
-/*
-CREATE POLICY user_own_data ON users FOR ALL USING (id = current_setting('app.current_user_id')::UUID);
-CREATE POLICY user_own_transactions ON transactions FOR ALL USING (user_id = current_setting('app.current_user_id')::UUID);
-CREATE POLICY user_own_responses ON user_survey_responses FOR ALL USING (user_id = current_setting('app.current_user_id')::UUID);
-CREATE POLICY user_own_completed_surveys ON user_completed_surveys FOR ALL USING (user_id = current_setting('app.current_user_id')::UUID);
-CREATE POLICY user_own_referrals ON referrals FOR ALL USING (referrer_id = current_setting('app.current_user_id')::UUID OR referred_user_id = current_setting('app.current_user_id')::UUID);
-CREATE POLICY user_own_withdrawals ON withdrawal_requests FOR ALL USING (user_id = current_setting('app.current_user_id')::UUID);
-CREATE POLICY user_own_activity ON activity_logs FOR ALL USING (user_id = current_setting('app.current_user_id')::UUID);
-*/
-
--- Crear un usuario administrador de ejemplo (cambiar credenciales en producción)
+-- Crear un usuario administrador de ejemplo
 INSERT INTO users (email, password_hash, referral_code, balance) 
 VALUES ('admin@angelessinalas.com', crypt('admin123', gen_salt('bf')), 'ADMIN001', 0.00);
-
--- Comentarios finales
-COMMENT ON TABLE users IS 'Tabla principal de usuarios registrados';
-COMMENT ON TABLE surveys IS 'Encuestas disponibles en la plataforma';
-COMMENT ON TABLE survey_questions IS 'Preguntas de cada encuesta';
-COMMENT ON TABLE user_survey_responses IS 'Respuestas individuales de usuarios';
-COMMENT ON TABLE user_completed_surveys IS 'Registro de encuestas completadas';
-COMMENT ON TABLE transactions IS 'Historial de transacciones monetarias';
-COMMENT ON TABLE referrals IS 'Sistema de referidos entre usuarios';
-COMMENT ON TABLE withdrawal_requests IS 'Solicitudes de retiro de dinero';
-COMMENT ON TABLE activity_logs IS 'Log de actividades para auditoría';
-COMMENT ON TABLE system_config IS 'Configuración del sistema';
-
--- Grants para el usuario de la aplicación (ajustar según necesidades)
--- GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA public TO app_user;
--- GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO app_user;
