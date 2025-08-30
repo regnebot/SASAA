@@ -15,39 +15,102 @@ const pool = new Pool({
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
-// Middleware
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com"],
-      imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'"]
-    }
-  }
-}));
-
-app.use(cors({
-  origin: process.env.NODE_ENV === 'production'
-    ? 'https://sasaa-production.up.railway.app'
-    : 'http://localhost:8080',
-  credentials: true
-}));
-
+// Middleware básico
+app.use(helmet());
+app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Servir archivos estáticos desde la raíz del proyecto
-app.use(express.static(__dirname));
+// Ruta principal SIMPLE que siempre funciona
+app.get('/', (req, res) => {
+  res.status(200).send(`
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Ángeles Sin Alas - Plataforma de Encuestas</title>
+      <script src="https://cdn.tailwindcss.com"></script>
+    </head>
+    <body class="bg-gray-50 min-h-screen">
+      <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <header class="text-center mb-8">
+          <h1 class="text-4xl font-bold text-blue-600 mb-2">Ángeles Sin Alas</h1>
+          <p class="text-xl text-gray-600">Plataforma de Encuestas</p>
+        </header>
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error('Express error:', err);
-  res.status(500).json({ error: 'Internal server error' });
+        <div class="grid md:grid-cols-2 gap-6">
+          <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-2xl font-semibold mb-4 text-green-600">Sistema Funcionando</h2>
+            <p class="text-gray-700 mb-4">
+              La aplicación está funcionando correctamente. 
+              Puedes acceder a las APIs del sistema.
+            </p>
+            <div class="space-y-2">
+              <a href="/api/health" class="block bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-center">
+                Verificar Estado del Sistema
+              </a>
+              <a href="/api/surveys" class="block bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 text-center">
+                Ver Encuestas Disponibles
+              </a>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-lg shadow-md p-6">
+            <h3 class="text-lg font-semibold mb-4">Estado del Sistema</h3>
+            <div id="status" class="text-sm text-gray-600">Verificando...</div>
+          </div>
+        </div>
+
+        <div class="mt-8 bg-white rounded-lg shadow-md p-6">
+          <h3 class="text-lg font-semibold mb-4">Encuestas Disponibles</h3>
+          <div id="surveys" class="text-sm text-gray-600">Cargando...</div>
+        </div>
+      </div>
+
+      <script>
+        // Verificar estado del sistema
+        fetch('/api/health')
+          .then(response => response.json())
+          .then(data => {
+            document.getElementById('status').innerHTML = 
+              '<span class="text-green-600">✓ Conectado</span><br>' +
+              '<span class="text-gray-500">BD: ' + data.database + '</span><br>' +
+              '<span class="text-gray-500">Entorno: ' + data.environment + '</span>';
+          })
+          .catch(error => {
+            document.getElementById('status').innerHTML = 
+              '<span class="text-red-600">✗ Error de conexión</span>';
+          });
+
+        // Cargar encuestas
+        fetch('/api/surveys')
+          .then(response => response.json())
+          .then(surveys => {
+            const surveysDiv = document.getElementById('surveys');
+            if (surveys.length > 0) {
+              surveysDiv.innerHTML = surveys.map(s => 
+                '<div class="border p-3 rounded mb-2">' +
+                '<strong>' + s.title + '</strong><br>' +
+                '<small class="text-gray-600">' + s.description + '</small><br>' +
+                '<span class="text-green-600">Recompensa: +' + s.reward_amount + '€</span>' +
+                '</div>'
+              ).join('');
+            } else {
+              surveysDiv.innerHTML = '<p>No hay encuestas disponibles.</p>';
+            }
+          })
+          .catch(error => {
+            document.getElementById('surveys').innerHTML = 
+              '<p class="text-red-500">Error cargando encuestas</p>';
+          });
+      </script>
+    </body>
+    </html>
+  `);
 });
 
-// API Routes first (before catch-all route)
+// API Routes
 app.get('/api/health', async (req, res) => {
   try {
     const result = await pool.query('SELECT NOW()');
@@ -339,45 +402,7 @@ app.get('/api/admin/responses', async (req, res) => {
   }
 });
 
-// Root route - serve index.html from root directory
-app.get('/', (req, res) => {
-  const indexPath = path.join(__dirname, 'index.html');
-  
-  res.sendFile(indexPath, (err) => {
-    if (err) {
-      console.error('Error serving index.html:', err);
-      // If there's an error serving the file, send a simple response
-      res.status(200).send(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>Ángeles Sin Alas - Sistema Activo</title>
-          <meta charset="UTF-8">
-        </head>
-        <body style="font-family: Arial, sans-serif; padding: 20px; text-align: center;">
-          <h1>Ángeles Sin Alas - Plataforma de Encuestas</h1>
-          <p>El sistema está funcionando correctamente.</p>
-          <p><a href="/api/health">Verificar estado del sistema</a></p>
-          <p><a href="/api/surveys">Ver encuestas disponibles</a></p>
-        </body>
-        </html>
-      `);
-    }
-  });
-});
-
-// Catch-all route for SPA (if needed)
-app.get('*', (req, res) => {
-  const indexPath = path.join(__dirname, 'index.html');
-  
-  res.sendFile(indexPath, (err) => {
-    if (err) {
-      res.status(404).json({ error: 'Page not found' });
-    }
-  });
-});
-
-// Inicializar base de datos en el primer arranque
+// Inicializar base de datos
 async function initializeDatabase() {
   try {
     console.log('Verificando estado de la base de datos...');
@@ -393,7 +418,6 @@ async function initializeDatabase() {
     if (!result.rows[0].exists) {
       console.log('Inicializando base de datos...');
       
-      // Leer y ejecutar el schema SQL
       const schemaPath = path.join(__dirname, 'schema.sql');
       if (fs.existsSync(schemaPath)) {
         const schemaSQL = fs.readFileSync(schemaPath, 'utf8');
@@ -407,10 +431,11 @@ async function initializeDatabase() {
     }
   } catch (error) {
     console.error('Error inicializando base de datos:', error);
+    // No lanzar el error - continuar sin BD si es necesario
   }
 }
 
-// Manejar errores no capturados
+// Error handlers
 process.on('unhandledRejection', (err) => {
   console.error('Unhandled Promise rejection:', err);
 });
@@ -420,17 +445,21 @@ process.on('uncaughtException', (err) => {
   process.exit(1);
 });
 
-// Cerrar conexiones de BD al salir
 process.on('SIGTERM', async () => {
   console.log('SIGTERM received, closing database connections...');
-  await pool.end();
+  try {
+    await pool.end();
+  } catch (error) {
+    console.error('Error closing pool:', error);
+  }
   process.exit(0);
 });
 
-// Start server with proper error handling
+// Iniciar servidor
 app.listen(port, '0.0.0.0', async () => {
   console.log(`Servidor corriendo en puerto ${port}`);
   console.log(`Entorno: ${process.env.NODE_ENV || 'development'}`);
+  
   try {
     await initializeDatabase();
   } catch (error) {
