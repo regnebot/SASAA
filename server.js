@@ -39,7 +39,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Servir archivos estáticos desde la raíz del proyecto
-app.use('/static', express.static(path.join(__dirname, 'public')));
+app.use(express.static(__dirname));
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -339,10 +339,9 @@ app.get('/api/admin/responses', async (req, res) => {
   }
 });
 
-// Root route - simple fallback that always works
+// Root route - serve index.html from root directory
 app.get('/', (req, res) => {
-  // First try to serve the existing index.html
-  const indexPath = path.join(__dirname, 'public', 'index.html');
+  const indexPath = path.join(__dirname, 'index.html');
   
   res.sendFile(indexPath, (err) => {
     if (err) {
@@ -369,13 +368,13 @@ app.get('/', (req, res) => {
 
 // Catch-all route for SPA (if needed)
 app.get('*', (req, res) => {
-  const indexPath = path.join(__dirname, 'public', 'index.html');
+  const indexPath = path.join(__dirname, 'index.html');
   
-  if (fs.existsSync(indexPath)) {
-    res.sendFile(indexPath);
-  } else {
-    res.status(404).json({ error: 'Page not found' });
-  }
+  res.sendFile(indexPath, (err) => {
+    if (err) {
+      res.status(404).json({ error: 'Page not found' });
+    }
+  });
 });
 
 // Inicializar base de datos en el primer arranque
