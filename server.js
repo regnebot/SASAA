@@ -7,7 +7,7 @@ const fs = require('fs');
 require('dotenv').config();
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 8080;
 
 // Configuración de la base de datos PostgreSQL
 const pool = new Pool({
@@ -31,7 +31,7 @@ app.use(helmet({
 app.use(cors({
   origin: process.env.NODE_ENV === 'production'
     ? 'https://sasaa-production.up.railway.app'
-    : 'http://localhost:3000',
+    : 'http://localhost:8080',
   credentials: true
 }));
 
