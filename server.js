@@ -617,9 +617,9 @@ process.on('SIGTERM', async () => {
 
 // Iniciar servidor
 app.listen(PORT, () => {
-  console.log(`🚀 Servidor corriendo en puerto ${port}`);
+  console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
   console.log(`📱 Entorno: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🔗 URL: http://localhost:${port}`);
+  console.log(`🔗 URL: http://localhost:${PORT}`);
   
   // Inicializar base de datos de forma asíncrona
   setTimeout(async () => {
