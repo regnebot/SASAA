@@ -41,12 +41,13 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Servir archivos estáticos
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Ruta principal
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Express error:', err);
+  res.status(500).json({ error: 'Internal server error' });
 });
 
-// API Routes
+// API Routes first (before catch-all route)
 app.get('/api/health', async (req, res) => {
   try {
     const result = await pool.query('SELECT NOW()');
@@ -338,6 +339,45 @@ app.get('/api/admin/responses', async (req, res) => {
   }
 });
 
+// Root route - provide a fallback response if index.html doesn't exist
+app.get('/', (req, res) => {
+  const indexPath = path.join(__dirname, 'public', 'index.html');
+  
+  // Check if index.html exists
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    // Fallback response if index.html doesn't exist
+    res.status(200).send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Ángeles Sin Alas - Plataforma de Encuestas</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      </head>
+      <body>
+        <h1>Ángeles Sin Alas - Plataforma de Encuestas</h1>
+        <p>La aplicación está funcionando correctamente.</p>
+        <p>API Health Check: <a href="/api/health">/api/health</a></p>
+        <p>Encuestas disponibles: <a href="/api/surveys">/api/surveys</a></p>
+      </body>
+      </html>
+    `);
+  }
+});
+
+// Catch-all route for SPA (if needed)
+app.get('*', (req, res) => {
+  const indexPath = path.join(__dirname, 'public', 'index.html');
+  
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).json({ error: 'Page not found' });
+  }
+});
+
 // Inicializar base de datos en el primer arranque
 async function initializeDatabase() {
   try {
@@ -388,8 +428,13 @@ process.on('SIGTERM', async () => {
   process.exit(0);
 });
 
-app.listen(port, async () => {
+// Start server with proper error handling
+app.listen(port, '0.0.0.0', async () => {
   console.log(`Servidor corriendo en puerto ${port}`);
   console.log(`Entorno: ${process.env.NODE_ENV || 'development'}`);
-  await initializeDatabase();
+  try {
+    await initializeDatabase();
+  } catch (error) {
+    console.error('Failed to initialize database:', error);
+  }
 });
